@@ -1,4 +1,5 @@
 package ${package_name}.entity;
+import com.songsy.common.BaseEntity;
 import javax.persistence.*;
 import java.util.Date;
 import lombok.Getter;
@@ -14,53 +15,33 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class ${model_name} extends BaseEntity {
+public class ${entity_name} extends BaseEntity {
 
-<#if model_column?exists>
-    <#list model_column as model>
-        /**
-        * ${model.columnComment!}
-        */
-        <#if (model.columnType = 'VARCHAR' || model.columnType = 'TEXT')>
-        <#--@Column(name = "${model.columnName}",columnDefinition = "VARCHAR")-->
-        private String ${model.changeColumnName?uncap_first};
-        </#if>
-        <#if model.columnType = 'TIMESTAMP' || model.columnType = 'DATETIME'>
-        private Date ${model.changeColumnName?uncap_first};
-        </#if>
-        <#if model.columnType = 'INT'>
-        private Integer ${model.changeColumnName?uncap_first};
-        </#if>
-        <#if model.columnType = 'BIT'>
-        private Boolean ${model.changeColumnName?uncap_first};
-        </#if>
-    </#list>
+<#if entity_column?exists>
+  <#list entity_column as entity>
+    /**
+    * ${entity.columnComment!}
+    * jdbcType: ${entity.columnType!}
+    * javaType: ${entity.javaType!}
+    */
+    private ${entity.javaType!} ${entity.changeColumnName?uncap_first};
+
+  </#list>
 </#if>
 <#--get set 生成-->
 
-<#if model_column?exists>
-    <#list model_column as model>
-        <#if (model.columnType = 'VARCHAR' || model.columnType = 'TEXT')>
-        public String get${model.changeColumnName}() {
-            return this.${model.changeColumnName?uncap_first};
-        }
+<#if entity_column?exists>
+  <#list entity_column as entity>
 
-        public void set${model.changeColumnName}(String ${model.changeColumnName?uncap_first}) {
-            this.${model.changeColumnName?uncap_first} = ${model.changeColumnName?uncap_first};
-        }
+    public ${entity.javaType!} get${entity.changeColumnName}() {
+        return this.${entity.changeColumnName?uncap_first};
+    }
 
-        </#if>
-        <#if model.columnType = 'TIMESTAMP' >
-        public Date get${model.changeColumnName}() {
-            return this.${model.changeColumnName?uncap_first};
-        }
+    public void set${entity.changeColumnName}(String ${entity.changeColumnName?uncap_first}) {
+        this.${entity.changeColumnName?uncap_first} = ${entity.changeColumnName?uncap_first};
+    }
 
-        public void set${model.changeColumnName}(Date ${model.changeColumnName?uncap_first}) {
-            this.${model.changeColumnName?uncap_first} = ${model.changeColumnName?uncap_first};
-        }
-
-        </#if>
-    </#list>
+  </#list>
 </#if>
 
 }

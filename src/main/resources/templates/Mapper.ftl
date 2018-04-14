@@ -1,27 +1,30 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
-<mapper namespace="${package_name}.repository.mybatis.${table_name}DAO">
-
-    <resultMap id="${table_name}DTOResultMap" type="${package_name}.dto.${table_name}DTO"></resultMap>
-
-    <sql id="findDtoSql">
-        select * from (
-        select * from  ${table_name_small} temp
-        ) t
+<mapper namespace="${mapper_packege??}.${entity_name??}Mapper" >
+    <resultMap id="BaseResultMap" type="${package_name??}.${entity_name??}" >
+<#if entity_column?exists>
+    <#list entity_column as entity>
+        <#--生成主键 id-->
+      <#if entity.columnName == 'id' && entity.columnType == 'INT'>
+        <id column="id" property="id" jdbcType="INTEGER" />
+      <#elseif entity.columnName == 'id' && entity.columnType == 'VARCHAR'>
+        <id column="id" property="id" jdbcType="VARCHAR" />
+      <#else>
+        <result column="${entity.columnName??}" property="${entity.changeColumnName?uncap_first}" jdbcType="${entity.columnType??}" />
+      </#if>
+    </#list>
+</#if>
+    </resultMap>
+    <sql id="Base_Column_List" >
+    <#if entity_column?exists>
+        <#list entity_column as entity>
+            <#if entity_has_next>
+        ${entity.columnName??},
+            <#else>
+        ${entity.columnName??}
+            </#if>
+        </#list>
+    </#if>
     </sql>
-
-    <select id="findDTOById" parameterType="String" resultMap="${table_name}DTOResultMap">
-        <include refid="findDtoSql"></include>
-        <where>
-            and t.id = ${r'#{id}'}
-        </where>
-    </select>
-
-    <select id="find${table_name}Page" parameterType="${package_name}.dto.${table_name}DTO" resultMap="${table_name}DTOResultMap">
-        <include refid="findDtoSql" />
-        <where>
-
-        </where>
-    </select>
 
 </mapper>

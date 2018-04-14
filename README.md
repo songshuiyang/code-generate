@@ -1,4 +1,4 @@
-# code.generate
+# code-generate
 ## Java 代码自动生成工具 
 
 ### 前言 
