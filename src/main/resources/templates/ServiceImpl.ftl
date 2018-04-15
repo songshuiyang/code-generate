@@ -1,48 +1,41 @@
-package ${package_name}.service.impl;
-import com.evada.inno.core.service.impl.BaseServiceImpl;
-import ${package_name}.model.${table_name};
-import ${package_name}.repository.${table_name}Repository;
-import ${package_name}.service.I${table_name}Service;
-import ${package_name}.repository.mybatis.${table_name}DAO;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import ${package_name}.dto.${table_name}DTO;
-import org.apache.commons.beanutils.BeanUtils;
-import com.evada.inno.core.enums.StatusEnum;
+package ${package_name};
+
+import ${entity_packege}.${entity_name};
 
 /**
-* 描述：${table_annotation} 服务实现层
+* ${table_annotation} service接口
 * @author ${author}
 * @date ${date}
 */
 @Service
-public class ${table_name}ServiceImpl extends BaseServiceImpl<${table_name}, String> implements I${table_name}Service {
+public class ${entity_name}ServiceImpl extends BaseServiceImpl<${entity_name},${id_java_type}> implements ${entity_name}Service{
 
-@Autowired
-private ${table_name}DAO ${table_name?uncap_first}DAO;
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-@Autowired
-private ${table_name}Repository ${table_name?uncap_first}Repository;
+    @Autowired
+    private ${entity_name}Mapper mapper;
 
-@Override
-public ${table_name}DTO findDTOById(String id) throws Exception {
-${table_name}DTO ${table_name?uncap_first}DTO = ${table_name?uncap_first}DAO.findDTOById(id);
-return ${table_name?uncap_first}DTO;
-}
+    public int deleteByPrimaryKey(${id_java_type} id){
+        return mapper.deleteByPrimaryKey(id);
+    }
 
-@Override
-public ${table_name}DTO create${table_name}(${table_name}DTO ${table_name?uncap_first}DTO) throws Exception {
-${table_name} ${table_name?uncap_first} = new ${table_name}();
-BeanUtils.copyProperties(${table_name?uncap_first},${table_name?uncap_first}DTO);
-${table_name?uncap_first}.setStatus(StatusEnum.ENABLE.toString());
-${table_name?uncap_first} = ${table_name?uncap_first}Repository.saveAndFlush(${table_name?uncap_first});
-return this.findDTOById(${table_name?uncap_first}.getId());
-}
+    public int insert(${entity_name} record){
+        return mapper.insert(record);
+    }
 
-@Override
-public ${table_name}DTO update${table_name}(${table_name}DTO ${table_name?uncap_first}DTO)throws Exception {
-${table_name} ${table_name?uncap_first} = new ${table_name}();
-BeanUtils.copyProperties(${table_name?uncap_first},${table_name?uncap_first}DTO);
-${table_name?uncap_first} = ${table_name?uncap_first}Repository.saveAndFlush(${table_name?uncap_first});
-return this.findDTOById(${table_name?uncap_first}.getId());
+    public int insertSelective(${entity_name} record){
+        return mapper.insertSelective(record);
+    }
+
+    public User selectByPrimaryKey(${id_java_type} id){
+        return mapper.selectByPrimaryKey(id);
+    }
+
+    public int updateByPrimaryKeySelective(${entity_name} record){
+        return mapper.updateByPrimaryKeySelective(record);
+    }
+
+    public int updateByPrimaryKey(${entity_name} record){
+        return mapper.updateByPrimaryKey(record);
+    }
 }

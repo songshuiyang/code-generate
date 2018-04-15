@@ -33,6 +33,8 @@ public class CodeGenerateUtils {
     private final boolean isOverlayDaoFile = false;
     // 新生的Mapper是否覆盖原有
     private final boolean isOverlayMapperFile = false;
+    // 新生的Service是否覆盖原有
+    private final boolean isOverlayServiceFile = false;
     // 项目根路径
     private static final String PROJECT_PATH = System.getProperty("user.dir");
     // java文件路径
@@ -98,8 +100,9 @@ public class CodeGenerateUtils {
             // 生成mapper文件
             //generateMapperFile(resultSet, tableName, entityName, classAnnotation);
             // 生成dao文件
-            generateDaoFile(resultSet, tableName, entityName, classAnnotation);
+            //generateDaoFile(resultSet, tableName, entityName, classAnnotation);
             // 生成service文件
+            generateServiceFile(resultSet, tableName, entityName, classAnnotation);
             // 生成service impl 文件
             // 生成controller 文件
 
@@ -307,6 +310,72 @@ public class CodeGenerateUtils {
         generateFileByTemplate(templateName,MODEL_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
         logger.info("----------------------- generate mapper.xml end -------------------");
     }
+
+    /**
+     * 生成service文件
+     * @param resultSet
+     * @param tableName
+     * @param entityName
+     * @param classAnnotation
+     * @throws Exception
+     */
+    private void generateServiceFile(ResultSet resultSet,String tableName, String entityName, String classAnnotation) throws Exception{
+        logger.info("----------------------- generate service.java start -------------------");
+        // 实体类名
+        String entityNameStr;
+        if (entityName == null) {
+            entityNameStr =  replaceUnderLineAndUpperCase(tableName);
+        } else {
+            entityNameStr = entityName;
+        }
+        // 文件输出路径
+        String path = PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_SERVICE + entityNameStr + "Service"+ ".java";
+        logger.info("项目路径:  " + PROJECT_PATH);
+        logger.info("serivce路径:  " + PACKAGE_PATH_SERVICE);
+        logger.info("完整路径: "+ path);
+        // 模板文件名
+        String templateName = "ServiceInterface.ftl";
+        File mapperFile = new File(path);
+        // 如果文件夹不存在
+        if (!mapperFile.getParentFile().exists()) {
+            mapperFile.getParentFile().mkdirs();
+        } else { // 如果文件夹存在
+            // 判断文件是否存在
+            if (mapperFile.exists()) {
+                // 是否覆盖文件
+                if (!isOverlayServiceFile) {
+                    entityNameStr = entityNameStr + System.currentTimeMillis();
+                    logger.info("已有同名文件,生成备用文件, 文件名: " + entityNameStr + "Service"+ ".java");
+                    mapperFile = new File(PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_SERVICE + entityNameStr + "Service"+ ".java");
+                }
+            }
+        }
+        // 表字段数据
+        List<ColumnProperty> columnClassList = new ArrayList<>();
+        ColumnProperty columnProperty = null;
+        while(resultSet.next()){
+            // 共有字段忽略 id是必须
+            if(Arrays.asList(entityIgnoreColumefield).contains(resultSet.getString("COLUMN_NAME"))) {
+                continue;
+            }
+            columnProperty = new ColumnProperty();
+            // 获取字段名称
+            columnProperty.setColumnName(resultSet.getString("COLUMN_NAME"));
+            // 获取字段类型
+            columnProperty.setColumnType(resultSet.getString("TYPE_NAME"));
+            // 获取Java类型
+            columnProperty.setJavaType(getJavaTypeByJdbcType(resultSet.getString("TYPE_NAME")));
+            // 数据库字段首字母小写且去掉下划线字符串
+            columnProperty.setChangeColumnName(replaceUnderLineAndUpperCase(resultSet.getString("COLUMN_NAME")));
+            // 字段在数据库的注释
+            columnProperty.setColumnComment(resultSet.getString("REMARKS"));
+            columnClassList.add(columnProperty);
+        }
+        // 包名
+        generateFileByTemplate(templateName,SERVICE_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
+        logger.info("----------------------- generate mapper.java end -------------------");
+    }
+
     /**
      * 根据模板生成文件
      * @param templateName 模板文件名
