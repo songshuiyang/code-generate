@@ -268,6 +268,13 @@ public class CodeGenerateUtils {
         dataMap.put("package_name",packageName);
         // 类注释
         dataMap.put("table_annotation",classAnnotation);
+
+        // 特殊字符
+        dataMap.put("char_1","#");
+        // 主键id JAVA类型
+        dataMap.put("id_java_type",getIdJavaType(columnClassList));
+        // 主键id JDBC类型
+        dataMap.put("id_jdbc_type",getIdJdbcType(columnClassList));
         Writer out = new BufferedWriter(new OutputStreamWriter(fos, "utf-8"),10240);
         template.process(dataMap,out);
     }
@@ -320,6 +327,33 @@ public class CodeGenerateUtils {
             returnValue = df.format(date);
         }
         return (returnValue);
+    }
+
+    /**
+     * 获取表主键id Java类型
+     * @param columnClassList
+     * @return
+     */
+    public static String getIdJavaType(List<ColumnProperty> columnClassList) {
+        for(ColumnProperty columnProperty : columnClassList) {
+            if (columnProperty.getColumnName().equals("id")) {
+                return columnProperty.getJavaType();
+            }
+        }
+        return "";
+    }
+    /**
+     * 获取表主键id jdbc类型
+     * @param columnClassList
+     * @return
+     */
+    public static String getIdJdbcType(List<ColumnProperty> columnClassList) {
+        for(ColumnProperty columnProperty : columnClassList) {
+            if (columnProperty.getColumnName().equals("id")) {
+                return columnProperty.getColumnType();
+            }
+        }
+        return "";
     }
 
     /**
