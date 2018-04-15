@@ -35,6 +35,10 @@ public class CodeGenerateUtils {
     private final boolean isOverlayMapperFile = false;
     // 新生的Service是否覆盖原有
     private final boolean isOverlayServiceFile = false;
+    // 新生的ServiceImpl是否覆盖原有
+    private final boolean isOverlayServiceImplFile = false;
+    // 新生的Controller是否覆盖原有
+    private final boolean isOverlayControllerFile = false;
     // 项目根路径
     private static final String PROJECT_PATH = System.getProperty("user.dir");
     // java文件路径
@@ -45,7 +49,7 @@ public class CodeGenerateUtils {
     public static final String BASE_PACKAGE = "com.songsy"; //项目基础包名称，根据自己公司的项目修改
     public static final String SERVICE_PACKAGE = BASE_PACKAGE + ".service";//Service所在包
     public static final String SERVICE_IMPL_PACKAGE = SERVICE_PACKAGE + ".impl";//ServiceImpl所在包
-    public static final String CONTROLLER_PACKAGE = BASE_PACKAGE + ".web";//Controller所在包
+    public static final String CONTROLLER_PACKAGE = BASE_PACKAGE + ".controller";//Controller所在包
     public static final String DAO_PACKAGE = BASE_PACKAGE + ".dao";//entity 所在包
     public static final String MODEL_PACKAGE = BASE_PACKAGE + ".entity";//entity 所在包
 
@@ -95,16 +99,24 @@ public class CodeGenerateUtils {
             Connection connection = getConnection();
             DatabaseMetaData databaseMetaData = connection.getMetaData();
             ResultSet resultSet = databaseMetaData.getColumns(null,"%", tableName,"%");
+            ResultSet resultSet1 = databaseMetaData.getColumns(null,"%", tableName,"%");
+            ResultSet resultSet2 = databaseMetaData.getColumns(null,"%", tableName,"%");
+            ResultSet resultSet3 = databaseMetaData.getColumns(null,"%", tableName,"%");
+            ResultSet resultSet4 = databaseMetaData.getColumns(null,"%", tableName,"%");
+            ResultSet resultSet5 = databaseMetaData.getColumns(null,"%", tableName,"%");
+
             // 生成实体类文件
-            //generateEntityFile(resultSet, tableName, entityName, classAnnotation);
+            generateEntityFile(resultSet, tableName, entityName, classAnnotation);
             // 生成mapper文件
-            //generateMapperFile(resultSet, tableName, entityName, classAnnotation);
-            // 生成dao文件
-            //generateDaoFile(resultSet, tableName, entityName, classAnnotation);
-            // 生成service文件
-            generateServiceFile(resultSet, tableName, entityName, classAnnotation);
-            // 生成service impl 文件
-            // 生成controller 文件
+            generateMapperFile(resultSet1, tableName, entityName, classAnnotation);
+//            // 生成dao文件
+            generateDaoFile(resultSet2, tableName, entityName, classAnnotation);
+//            // 生成service文件
+            generateServiceFile(resultSet3, tableName, entityName, classAnnotation);
+//            // 生成service impl 文件
+            generateServiceImplFile(resultSet4, tableName, entityName, classAnnotation);
+//            // 生成controller 文件
+            generateControllerFile(resultSet5, tableName, entityName, classAnnotation);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -334,7 +346,7 @@ public class CodeGenerateUtils {
         logger.info("serivce路径:  " + PACKAGE_PATH_SERVICE);
         logger.info("完整路径: "+ path);
         // 模板文件名
-        String templateName = "ServiceInterface.ftl";
+        String templateName = "Service.ftl";
         File mapperFile = new File(path);
         // 如果文件夹不存在
         if (!mapperFile.getParentFile().exists()) {
@@ -377,6 +389,135 @@ public class CodeGenerateUtils {
     }
 
     /**
+     * 生成serviceImpl文件
+     * @param resultSet
+     * @param tableName
+     * @param entityName
+     * @param classAnnotation
+     * @throws Exception
+     */
+    private void generateServiceImplFile(ResultSet resultSet,String tableName, String entityName, String classAnnotation) throws Exception{
+        logger.info("----------------------- generate serviceImpl.java start -------------------");
+        // 实体类名
+        String entityNameStr;
+        if (entityName == null) {
+            entityNameStr =  replaceUnderLineAndUpperCase(tableName);
+        } else {
+            entityNameStr = entityName;
+        }
+        // 文件输出路径
+        String path = PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_SERVICE_IMPL + entityNameStr + "ServiceImpl"+ ".java";
+        logger.info("项目路径:  " + PROJECT_PATH);
+        logger.info("serivceImpl路径:  " + PACKAGE_PATH_SERVICE_IMPL);
+        logger.info("完整路径: "+ path);
+        // 模板文件名
+        String templateName = "ServiceImpl.ftl";
+        File mapperFile = new File(path);
+        // 如果文件夹不存在
+        if (!mapperFile.getParentFile().exists()) {
+            mapperFile.getParentFile().mkdirs();
+        } else { // 如果文件夹存在
+            // 判断文件是否存在
+            if (mapperFile.exists()) {
+                // 是否覆盖文件
+                if (!isOverlayServiceImplFile) {
+                    entityNameStr = entityNameStr + System.currentTimeMillis();
+                    logger.info("已有同名文件,生成备用文件, 文件名: " + entityNameStr + "Service"+ ".java");
+                    mapperFile = new File(PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_SERVICE_IMPL + entityNameStr + "ServiceImpl"+ ".java");
+                }
+            }
+        }
+        // 表字段数据
+        List<ColumnProperty> columnClassList = new ArrayList<>();
+        ColumnProperty columnProperty = null;
+        while(resultSet.next()){
+            // 共有字段忽略 id是必须
+            if(Arrays.asList(entityIgnoreColumefield).contains(resultSet.getString("COLUMN_NAME"))) {
+                continue;
+            }
+            columnProperty = new ColumnProperty();
+            // 获取字段名称
+            columnProperty.setColumnName(resultSet.getString("COLUMN_NAME"));
+            // 获取字段类型
+            columnProperty.setColumnType(resultSet.getString("TYPE_NAME"));
+            // 获取Java类型
+            columnProperty.setJavaType(getJavaTypeByJdbcType(resultSet.getString("TYPE_NAME")));
+            // 数据库字段首字母小写且去掉下划线字符串
+            columnProperty.setChangeColumnName(replaceUnderLineAndUpperCase(resultSet.getString("COLUMN_NAME")));
+            // 字段在数据库的注释
+            columnProperty.setColumnComment(resultSet.getString("REMARKS"));
+            columnClassList.add(columnProperty);
+        }
+        // 包名
+        generateFileByTemplate(templateName,SERVICE_IMPL_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
+        logger.info("----------------------- generate serviceImpl.java end -------------------");
+    }
+
+    /**
+     * 生成Controller文件
+     * @param resultSet
+     * @param tableName
+     * @param entityName
+     * @param classAnnotation
+     * @throws Exception
+     */
+    private void generateControllerFile(ResultSet resultSet,String tableName, String entityName, String classAnnotation) throws Exception{
+        logger.info("----------------------- generate controllerImpl.java start -------------------");
+        // 实体类名
+        String entityNameStr;
+        if (entityName == null) {
+            entityNameStr =  replaceUnderLineAndUpperCase(tableName);
+        } else {
+            entityNameStr = entityName;
+        }
+        // 文件输出路径
+        String path = PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_CONTROLLER + entityNameStr + "Controller"+ ".java";
+        logger.info("项目路径:  " + PROJECT_PATH);
+        logger.info("controller路径:  " + PACKAGE_PATH_CONTROLLER);
+        logger.info("完整路径: "+ path);
+        // 模板文件名
+        String templateName = "Controller.ftl";
+        File mapperFile = new File(path);
+        // 如果文件夹不存在
+        if (!mapperFile.getParentFile().exists()) {
+            mapperFile.getParentFile().mkdirs();
+        } else { // 如果文件夹存在
+            // 判断文件是否存在
+            if (mapperFile.exists()) {
+                // 是否覆盖文件
+                if (!isOverlayControllerFile) {
+                    entityNameStr = entityNameStr + System.currentTimeMillis();
+                    logger.info("已有同名文件,生成备用文件, 文件名: " + entityNameStr + "Controller"+ ".java");
+                    mapperFile = new File(PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_CONTROLLER + entityNameStr + "Controller"+ ".java");
+                }
+            }
+        }
+        // 表字段数据
+        List<ColumnProperty> columnClassList = new ArrayList<>();
+        ColumnProperty columnProperty = null;
+        while(resultSet.next()){
+            // 共有字段忽略 id是必须
+            if(Arrays.asList(entityIgnoreColumefield).contains(resultSet.getString("COLUMN_NAME"))) {
+                continue;
+            }
+            columnProperty = new ColumnProperty();
+            // 获取字段名称
+            columnProperty.setColumnName(resultSet.getString("COLUMN_NAME"));
+            // 获取字段类型
+            columnProperty.setColumnType(resultSet.getString("TYPE_NAME"));
+            // 获取Java类型
+            columnProperty.setJavaType(getJavaTypeByJdbcType(resultSet.getString("TYPE_NAME")));
+            // 数据库字段首字母小写且去掉下划线字符串
+            columnProperty.setChangeColumnName(replaceUnderLineAndUpperCase(resultSet.getString("COLUMN_NAME")));
+            // 字段在数据库的注释
+            columnProperty.setColumnComment(resultSet.getString("REMARKS"));
+            columnClassList.add(columnProperty);
+        }
+        // 包名
+        generateFileByTemplate(templateName,CONTROLLER_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
+        logger.info("----------------------- generate controllerImpl.java end -------------------");
+    }
+    /**
      * 根据模板生成文件
      * @param templateName 模板文件名
      * @param packageName 包名
@@ -408,9 +549,16 @@ public class CodeGenerateUtils {
         // 时间
         dataMap.put("date",CURRENT_DATE);
         // mapper路径
-        dataMap.put("mapper_packege",MODEL_PACKAGE);
+        dataMap.put("mapper_packege",DAO_PACKAGE);
         // entity包路径
         dataMap.put("entity_packege",MODEL_PACKAGE);
+        // service包路徑
+        dataMap.put("service_packege",SERVICE_PACKAGE);
+        // serviceImpl包路徑
+        dataMap.put("serviceImpl_packege",SERVICE_IMPL_PACKAGE);
+        // controller包路径
+        dataMap.put("controller_package",CONTROLLER_PACKAGE);
+
         // 包路径
         dataMap.put("package_name",packageName);
         // 类注释
