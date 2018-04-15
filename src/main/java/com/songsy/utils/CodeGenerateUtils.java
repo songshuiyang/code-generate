@@ -29,6 +29,10 @@ public class CodeGenerateUtils {
     private final String CURRENT_DATE = format(new Date(),"yyyy-MM-dd HH:mm:ss");
     // 新生的实体类是否覆盖原有
     private final boolean isOverlayEntityFile = false;
+    // 新生的Dao文件是否覆盖原有
+    private final boolean isOverlayDaoFile = false;
+    // 新生的Mapper是否覆盖原有
+    private final boolean isOverlayMapperFile = false;
     // 项目根路径
     private static final String PROJECT_PATH = System.getProperty("user.dir");
     // java文件路径
@@ -92,7 +96,12 @@ public class CodeGenerateUtils {
             // 生成实体类文件
             //generateEntityFile(resultSet, tableName, entityName, classAnnotation);
             // 生成mapper文件
-            generateMapperFile(resultSet, tableName, entityName, classAnnotation);
+            //generateMapperFile(resultSet, tableName, entityName, classAnnotation);
+            // 生成dao文件
+            generateDaoFile(resultSet, tableName, entityName, classAnnotation);
+            // 生成service文件
+            // 生成service impl 文件
+            // 生成controller 文件
 
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -163,11 +172,76 @@ public class CodeGenerateUtils {
             columnClassList.add(columnClass);
         }
 
-        generateFileByTemplate(templateName,MODEL_PACKAGE,tableName,entityName,classAnnotation,null,mapperFile,columnClassList);
+        generateFileByTemplate(templateName,MODEL_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
         logger.info("----------------------- generate entity.java end -------------------");
     }
 
 
+
+    /**
+     * 生成dao文件
+     * @param resultSet
+     * @param tableName
+     * @param entityName
+     * @param classAnnotation
+     * @throws Exception
+     */
+    private void generateDaoFile(ResultSet resultSet,String tableName, String entityName, String classAnnotation) throws Exception{
+        logger.info("----------------------- generate mapper.java start -------------------");
+        // 实体类名
+        String entityNameStr;
+        if (entityName == null) {
+            entityNameStr =  replaceUnderLineAndUpperCase(tableName);
+        } else {
+            entityNameStr = entityName;
+        }
+        // 文件输出路径
+        String path = PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_DAO + entityNameStr + "Mapper"+ ".java";
+        logger.info("项目路径:  " + PROJECT_PATH);
+        logger.info("dao路径:  " + PACKAGE_PATH_DAO);
+        logger.info("完整路径: "+ path);
+        // 模板文件名
+        String templateName = "Dao.ftl";
+        File mapperFile = new File(path);
+        // 如果文件夹不存在
+        if (!mapperFile.getParentFile().exists()) {
+            mapperFile.getParentFile().mkdirs();
+        } else { // 如果文件夹存在
+            // 判断文件是否存在
+            if (mapperFile.exists()) {
+                // 是否覆盖文件
+                if (!isOverlayDaoFile) {
+                    entityNameStr = entityNameStr + System.currentTimeMillis();
+                    logger.info("已有同名文件,生成备用文件, 文件名: " + entityNameStr + "Mapper"+ ".java");
+                    mapperFile = new File(PROJECT_PATH +  JAVA_PATH + PACKAGE_PATH_DAO + entityNameStr + "Mapper"+ ".java");
+                }
+            }
+        }
+        // 表字段数据
+        List<ColumnProperty> columnClassList = new ArrayList<>();
+        ColumnProperty columnProperty = null;
+        while(resultSet.next()){
+            // 共有字段忽略 id是必须
+            if(Arrays.asList(entityIgnoreColumefield).contains(resultSet.getString("COLUMN_NAME"))) {
+                continue;
+            }
+            columnProperty = new ColumnProperty();
+            // 获取字段名称
+            columnProperty.setColumnName(resultSet.getString("COLUMN_NAME"));
+            // 获取字段类型
+            columnProperty.setColumnType(resultSet.getString("TYPE_NAME"));
+            // 获取Java类型
+            columnProperty.setJavaType(getJavaTypeByJdbcType(resultSet.getString("TYPE_NAME")));
+            // 数据库字段首字母小写且去掉下划线字符串
+            columnProperty.setChangeColumnName(replaceUnderLineAndUpperCase(resultSet.getString("COLUMN_NAME")));
+            // 字段在数据库的注释
+            columnProperty.setColumnComment(resultSet.getString("REMARKS"));
+            columnClassList.add(columnProperty);
+        }
+        // 包名
+        generateFileByTemplate(templateName,DAO_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
+        logger.info("----------------------- generate mapper.java end -------------------");
+    }
 
     /**
      * 生成mapper文件
@@ -177,7 +251,7 @@ public class CodeGenerateUtils {
      * @param classAnnotation
      * @throws Exception
      */
-    private void generateMapperFile(ResultSet resultSet,String tableName, String entityName, String classAnnotation) throws Exception{
+    private void generateMapperFile(ResultSet resultSet,String tableName, String entityName,String classAnnotation) throws Exception{
         logger.info("----------------------- generate mapper.xml start -------------------");
         // 实体类名
         String entityNameStr;
@@ -201,7 +275,7 @@ public class CodeGenerateUtils {
             // 判断文件是否存在
             if (mapperFile.exists()) {
                 // 是否覆盖文件
-                if (!isOverlayEntityFile) {
+                if (!isOverlayMapperFile) {
                     entityNameStr = entityNameStr + System.currentTimeMillis();
                     logger.info("已有同名文件,生成备用文件, 文件名: " + entityNameStr + "Mapper"+ ".xml");
                     mapperFile = new File(PROJECT_PATH + PACKAGE_PATH_MAPPER + entityNameStr + "Mapper"+ ".xml");
@@ -230,19 +304,21 @@ public class CodeGenerateUtils {
             columnClassList.add(columnProperty);
         }
         // 包名
-        generateFileByTemplate(templateName,MODEL_PACKAGE,tableName,entityName,classAnnotation,DAO_PACKAGE,mapperFile,columnClassList);
+        generateFileByTemplate(templateName,MODEL_PACKAGE,tableName,entityName,classAnnotation,mapperFile,columnClassList);
         logger.info("----------------------- generate mapper.xml end -------------------");
     }
     /**
      * 根据模板生成文件
-     * @param templateName
-     * @param tableName
-     * @param entityName
-     * @param file
-     * @param columnClassList
+     * @param templateName 模板文件名
+     * @param packageName 包名
+     * @param tableName table名
+     * @param entityName 实体类名
+     * @param classAnnotation 类注释
+     * @param file file
+     * @param columnClassList 表格字段数据
      * @throws Exception
      */
-    private void generateFileByTemplate(String templateName,String packageName,String tableName,String entityName,String classAnnotation,String mapperPackege,File file,List<ColumnProperty> columnClassList) throws Exception{
+    private void generateFileByTemplate(String templateName,String packageName,String tableName,String entityName,String classAnnotation,File file,List<ColumnProperty> columnClassList) throws Exception{
         Map<String,Object> dataMap = new HashMap<>();
         Template template = FreeMarkerTemplateUtils.getTemplate(templateName);
         FileOutputStream fos = new FileOutputStream(file);
@@ -263,7 +339,9 @@ public class CodeGenerateUtils {
         // 时间
         dataMap.put("date",CURRENT_DATE);
         // mapper路径
-        dataMap.put("mapper_packege",mapperPackege);
+        dataMap.put("mapper_packege",MODEL_PACKAGE);
+        // entity包路径
+        dataMap.put("entity_packege",MODEL_PACKAGE);
         // 包路径
         dataMap.put("package_name",packageName);
         // 类注释
